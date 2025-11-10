@@ -1,4 +1,5 @@
-﻿using Duckov.Buffs;
+﻿using Duckov;
+using Duckov.Buffs;
 using Duckov.Economy;
 using Duckov.UI.DialogueBubbles;
 using System;
@@ -35,6 +36,8 @@ namespace PetReplace
 
         private Transform bubblePos;
 
+        private List<string> soundPath = new List<string>();
+
         private string[] guaihuas = new string[]
         {
             "你好会搜索物资呀~",
@@ -53,7 +56,7 @@ namespace PetReplace
             "你好会捡垃圾呀~"
         };
 
-        private float bubbleCountdown = 0;
+        private float bubbleCountdown = 5;
 
 
         private void Update()
@@ -163,6 +166,9 @@ namespace PetReplace
                 {
                     characterModel.characterMainControl.PopText(content, -1f);
                     bubbleCountdown = 20;
+
+                    int random = UnityEngine.Random.Range(0, soundPath.Count);
+                    AudioManager.PostCustomSFX(soundPath[random]);
                 }
                 else
                 {
@@ -209,6 +215,7 @@ namespace PetReplace
         }
         private void InitializeCharacter(GameObject characterObject)
         {
+            InitSoundFilePath();
             characterObject.layer = LayerMask.NameToLayer("Default");
             instantedObject = UnityEngine.Object.Instantiate<GameObject>(characterObject, characterModel.transform);
             instantedObject.transform.localPosition = Vector3.zero;
@@ -222,6 +229,7 @@ namespace PetReplace
             CharacterMainControl.Main.Health.OnDeadEvent.AddListener(OnDead);
             EconomyManager.OnMoneyChanged += OnMoneyChange;
             CharacterMainControl.Main.GetBuffManager().onAddBuff += OnAddBuff;
+
         }
 
         private void OnAddBuff(CharacterBuffManager manager, Buff buff)
@@ -283,6 +291,22 @@ namespace PetReplace
         private string GetDllDirectory()
         {
             return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        }
+
+        /// <summary>
+        /// 获取所有音频文件
+        /// </summary>
+        private void InitSoundFilePath()
+        {
+            soundPath.Clear();
+            for (int i = 0; i < 99; i++)
+            {
+                string p = GetDllDirectory() + "/" + i + ".wav";
+                if (File.Exists(p))
+                {
+                    soundPath.Add(p);
+                }
+            }
         }
 
     }
