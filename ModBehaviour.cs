@@ -58,6 +58,15 @@ namespace PetReplace
 
         private float bubbleCountdown = 5;
 
+        private bool petSound = true;
+
+        private float gap = 20;
+
+        private int probability = 80;
+
+        private string targetShaderName = "SodaCraft/SodaCharacter";
+
+        private PetSetting loadedSetting;
 
         private void Update()
         {
@@ -71,10 +80,19 @@ namespace PetReplace
             {
                 CreateBubble(guaihuas[UnityEngine.Random.Range(0, guaihuas.Length)]);
             }
+            if (Input.GetKey(KeyCode.LeftAlt) && Input.GetKeyDown(KeyCode.M)) SetCharacterShader();
+
+
+            //if (Input.GetKeyDown(KeyCode.H))
+            //{
+            //    PetSetting setting = new PetSetting();
+            //    Debug.Log(JsonUtility.ToJson(setting));
+            //}
         }
 
         private void FindAllDogRenderer(Transform target)
         {
+            //Debug.Log(GetSpace(target) + target.name);
             MeshRenderer mr = target.GetComponent<MeshRenderer>();
             SkinnedMeshRenderer smr = target.GetComponent<SkinnedMeshRenderer>();
             if (mr != null) mrToHide.Add(mr);
@@ -124,6 +142,7 @@ namespace PetReplace
         {
             mrToHide.Clear();
             smrToHide.Clear();
+            //FindAllDogRenderer(characterModel.transform);
             FindAllDogRenderer(characterModel.transform.Find("Dog"));
             for (int i = 0; i < mrToHide.Count; i++) mrToHide[i].enabled = false;
             for (int i = 0; i < smrToHide.Count; i++) smrToHide[i].enabled = false;
@@ -158,6 +177,9 @@ namespace PetReplace
         private void CreateBubble(string content, bool ignoreCountdown = false)
         {
             if (bubblePos == null) return;
+            int probabilityRandom = UnityEngine.Random.Range(0, 100);
+            if (probabilityRandom > probability) return;
+
             if (!ignoreCountdown) if (bubbleCountdown > 0) return;
             try
             {
@@ -165,10 +187,12 @@ namespace PetReplace
                 if (characterModel != null && characterModel.characterMainControl != null)
                 {
                     characterModel.characterMainControl.PopText(content, -1f);
-                    bubbleCountdown = 20;
-
-                    int random = UnityEngine.Random.Range(0, soundPath.Count);
-                    AudioManager.PostCustomSFX(soundPath[random]);
+                    bubbleCountdown = gap;
+                    if (petSound)
+                    {
+                        int random = UnityEngine.Random.Range(0, soundPath.Count);
+                        AudioManager.PostCustomSFX(soundPath[random]);
+                    }
                 }
                 else
                 {
@@ -230,57 +254,96 @@ namespace PetReplace
             EconomyManager.OnMoneyChanged += OnMoneyChange;
             CharacterMainControl.Main.GetBuffManager().onAddBuff += OnAddBuff;
 
+            if (Application.platform == RuntimePlatform.OSXPlayer)
+            {
+                Debug.Log("当前运行环境为 Mac ，自动替换 Shader");
+                SetCharacterShader();
+            }
+
         }
 
         private void OnAddBuff(CharacterBuffManager manager, Buff buff)
         {
+            if (loadedSetting == null) return;
             int random = UnityEngine.Random.Range(0, 100);
-            if (random < 5) CreateBubble("老板又变强了呀~", true);
-            else if (random < 10) CreateBubble("老板好厉害呀~", true);
+            if (random < 10)
+            {
+                string t = loadedSetting.addBuffText[UnityEngine.Random.Range(0, loadedSetting.addBuffText.Count)];
+                CreateBubble(t, true);
+            }
         }
 
         private void OnMoneyChange(long arg1, long arg2)
         {
+            if (loadedSetting == null) return;
             int random = UnityEngine.Random.Range(0, 100);
-            if (random < 5) CreateBubble("老板好有钱啊~", false);
-            else if (random < 10) CreateBubble("老板大气~", false);
+            if (random < 10)
+            {
+                string t = loadedSetting.moneyChangeText[UnityEngine.Random.Range(0, loadedSetting.moneyChangeText.Count)];
+                CreateBubble(t, true);
+            }
         }
 
         private void OnDead(DamageInfo info)
         {
-            int random = UnityEngine.Random.Range(0, 100);
-            if (random < 50) CreateBubble("老板睡得好香呀~", true);
-            else CreateBubble("真拼呢~");
+            if (loadedSetting == null) return;
+            string t = loadedSetting.deadText[UnityEngine.Random.Range(0, loadedSetting.deadText.Count)];
+            CreateBubble(t, true);
         }
 
 
         private void OnActionStart(CharacterActionBase action)
         {
+            if (loadedSetting == null) return;
             int random = UnityEngine.Random.Range(0, 100);
             switch (action.ActionPriority())
             {
                 case CharacterActionBase.ActionPriorities.Fishing:
-                    if (random < 50) CreateBubble("老板好会钓鱼呀~", true);
+                    string t = loadedSetting.fishingText[UnityEngine.Random.Range(0, loadedSetting.fishingText.Count)];
+                    CreateBubble(t, true);
                     break;
                 case CharacterActionBase.ActionPriorities.Dash:
-                    if (random < 20)  CreateBubble("老板好身手~", false); 
+                    string t1 = loadedSetting.dashText[UnityEngine.Random.Range(0, loadedSetting.dashText.Count)];
+                    CreateBubble(t1, false);
                     break;
                 default:
                     break;
+
+                //case CharacterActionBase.ActionPriorities.Fishing:
+                //    if (random < 50) CreateBubble("老板好会钓鱼呀~", true);
+                //    break;
+                //case CharacterActionBase.ActionPriorities.Dash:
+                //    if (random < 20) CreateBubble("老板好身手~", false);
+                //    break;
+                //default:
+                //    break;
+
             }
         }
 
         private void OnHurt(DamageInfo info)
         {
+            if (loadedSetting == null) return;
             int random = UnityEngine.Random.Range(0, 100);
-            if (random < 10) CreateBubble("老板身板好硬呀~", true);
+            if (random < 10)
+            {
+                string t = loadedSetting.hurtText[UnityEngine.Random.Range(0, loadedSetting.hurtText.Count)];
+                CreateBubble(t, true);
+            }
+            /*CreateBubble("老板身板好硬呀~", true);*/
         }
 
         private void ShootEvent(DuckovItemAgent agent)
         {
+            if (loadedSetting == null) return;
             int random = UnityEngine.Random.Range(0, 100);
-            if (random < 3) CreateBubble("老板射的好准呀~", false);
-            else if (random < 6) CreateBubble("老板好会打枪呀~", false);
+            if (random < 5)
+            {
+                string t = loadedSetting.shootText[UnityEngine.Random.Range(0, loadedSetting.shootText.Count)];
+                CreateBubble(t, false);
+            }
+            //if (random < 3) CreateBubble("老板射的好准呀~", false);
+            //else if (random < 6) CreateBubble("老板好会打枪呀~", false);
         }
 
 
@@ -298,6 +361,20 @@ namespace PetReplace
         /// </summary>
         private void InitSoundFilePath()
         {
+            string settingPath = GetDllDirectory() + "/Setting.json";
+            if (File.Exists(settingPath))
+            {
+                string settingContent = File.ReadAllText(settingPath);
+                loadedSetting = JsonUtility.FromJson<PetSetting>(settingContent);
+                if (loadedSetting != null) 
+                { 
+                    petSound = loadedSetting.playSound;
+                    gap = loadedSetting.textGap;
+                    probability = loadedSetting.textProbability;
+                    guaihuas = loadedSetting.normalText.ToArray();
+                }
+            }
+
             soundPath.Clear();
             for (int i = 0; i < 99; i++)
             {
@@ -308,6 +385,78 @@ namespace PetReplace
                 }
             }
         }
+
+
+        private void SetCharacterShader()
+        {
+            Shader shader = Shader.Find(targetShaderName);
+            if (shader == null)
+            {
+                Debug.LogError("Shader not found: " + targetShaderName);
+                return;
+            }
+            else
+            {
+                for (int i = 0; i < characterModel.transform.childCount; i++)
+                {
+                    if (characterModel.transform.GetChild(i).name.Contains("说怪话"))
+                    {
+                        ReplaceAllShaders(characterModel.transform.GetChild(i).Find("努努斯_mesh"), shader);
+                        ReplaceAllShaders(characterModel.transform.GetChild(i).Find("努努斯/努努斯_arm/Main/Root_M/Spine1_M/Chest_M/wings"), shader);
+                    }
+                }
+            }
+        }
+        private void ReplaceAllShaders(Transform target, Shader shader)
+        {
+            Renderer r = target.GetComponent<Renderer>();
+            if (r == null) return;
+
+            foreach (Material material in r.materials)
+            {
+                if (material != null)
+                {
+                    Texture mainTex = material.GetTexture("_BaseMap");
+                    material.shader = shader;
+                    material.SetTexture("_MainTex", mainTex);
+                    material.SetFloat("_AlphaCutoff", 0.75f);
+                    material.SetFloat("_Metallic", 0);
+                    material.SetFloat("_Smoothness", 0);
+                    if (material.name.Contains("EyeMouth"))
+                        material.SetTexture("_EmissionMap", mainTex);
+                    else
+                        material.SetColor("_EmissionColor", Color.black);
+                }
+            }
+        }
+
+
+    }
+
+    [Serializable]
+    public class PetSetting
+    {
+        public bool playSound = true;
+
+        public float textGap = 20;
+
+        public int textProbability = 50;
+
+        public List<string> normalText = new List<string>() { "aa", "bb" };
+
+        public List<string> shootText = new List<string>() { "cc", "dd" };
+
+        public List<string> addBuffText = new List<string>() { "ee", "ff" };
+
+        public List<string> moneyChangeText = new List<string>() { "gg", "hh" };
+
+        public List<string> deadText = new List<string>() { "ii"};
+
+        public List<string> hurtText = new List<string>() { "jj" };
+
+        public List<string> fishingText = new List<string>() { "kk" };
+
+        public List<string> dashText = new List<string>() { "ll" };
 
     }
 }
